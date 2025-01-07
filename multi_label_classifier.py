@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 import pickle
 
 
+# 数据集加载与划分
+filepath = "E://OneDrive//伊之密工作//工作汇报//2024-12//模型训练代码//模型训练数据.xlsx"        # 替换为实际路径
+sheet_name = "Sheet1"                                                       # 替换为工作表名
+
+
 # 自定义数据集类
 class MultiLabelDataset(Dataset):
     def __init__(self, filepath, num_classes, _sheet_name, normalize=True):
@@ -126,10 +131,6 @@ def save_normalization_params(mean, std, filepath="normalization_params.pkl"):
 # 训练过程的损失记录
 loss_history = []
 
-# 数据集加载与划分
-filepath = "E://OneDrive//伊之密工作//工作汇报//2024-11//Train.xlsx"  # 替换为实际路径
-# sheet_name = "Sheet8（加入人工判断尺寸特征）"
-sheet_name = "Sheet6（合并优化模式）"
 dataset = MultiLabelDataset(filepath, 4, sheet_name, normalize=True)
 
 
@@ -195,10 +196,13 @@ evaluate_model(model, test_loader)
 print("Evaluating on all data:")
 evaluate_model(model, data_loader)
 
-# 保存模型
+# 保存模型参数
 model_save_path = "multi_label_classifier.pth"
 torch.save(model.state_dict(), model_save_path)
 print(f"Model saved to {model_save_path}")
+
+# 保存完整模型
+torch.save(model, 'whole_model.pth')
 
 # 保存归一化参数
 save_normalization_params(dataset.mean, dataset.std)

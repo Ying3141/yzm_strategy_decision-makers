@@ -4,16 +4,14 @@ import torch
 from model_utils import load_model, predict
 import pickle
 
-# 定义类别名称，用于显示模型预测的结果
-class_labels = [
-    "动态VP切换模式",
-    "动态保压压力模式",
-    "动态VP+保压模式",
-    "标准模式"
-]
-
 # 加载模型相关参数
-model_path = "multi_label_classifier.pth"  # 模型文件路径
+model_path = "multi_label_classifier.pth"  # 加载完整预测模型
+normalization_params_path = "normalization_params.pkl"  # 加载归一化参数
+
+# 定义类别名称，用于显示模型预测的结果
+class_labels = ["动态VP切换模式", "动态保压压力模式", "动态VP+保压模式", "标准模式"]
+
+# 定义模型相关参数
 input_size = 22  # 输入特征数，需要与训练时一致
 hidden_size = 32  # 隐藏层大小
 num_classes = 4  # 输出类别数
@@ -33,7 +31,7 @@ font = ("宋体", 12)
 
 
 # 加载归一化参数：均值和标准差，用于归一化输入特征
-def load_normalization_params(filepath="normalization_params.pkl"):
+def load_normalization_params(filepath=normalization_params_path):
     with open(filepath, 'rb') as f:
         mean, std = pickle.load(f)  # 从 pickle 文件中读取均值和标准差
     return mean, std
@@ -66,7 +64,7 @@ for i, material in enumerate(materials):
     row = i // 4  # 第一排放前4个复选框，第二排放后3个
     col = i % 4  # 每一排最多4个复选框
     tk_btn = tk.Checkbutton(material_feature_frame, text=material, variable=material_vars[i],
-                           command=lambda idx=i: set_material_feature(1, idx), font=font, bg="#f0f0f0")
+                            command=lambda idx=i: set_material_feature(1, idx), font=font, bg="#f0f0f0")
     tk_btn.grid(row=row, column=col, padx=10, pady=5, sticky="w")
 
 # 浇口特征选择框（点胶口和直浇口）
@@ -171,7 +169,7 @@ color_legend_frame = tk.Frame(root, bg="#f0f0f0")
 color_legend_frame.grid(row=6, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
 # 假设颜色和标签对应
-color_legend = [ ("不适用", "red"), ("适用", "green"), ("可能适用", "yellow")]
+color_legend = [("不适用", "red"), ("适用", "green"), ("可能适用", "yellow")]
 
 # 创建颜色说明条
 for i, (color_name, color_value) in enumerate(color_legend):
@@ -182,7 +180,6 @@ for i, (color_name, color_value) in enumerate(color_legend):
     # 标签文字，右对齐
     label = tk.Label(color_legend_frame, text=color_name, font=("宋体", 8), bg="#f0f0f0", anchor="e")
     label.grid(row=0, column=2 * i + 1, padx=10, pady=0, sticky="e")  # 右对齐文本
-
 
 
 # 预测函数：获取用户输入，进行归一化并使用模型预测

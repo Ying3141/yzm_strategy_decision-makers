@@ -1,5 +1,7 @@
 import torch
+import pickle
 import torch.nn as nn
+
 
 # 定义多标签分类器模型结构
 class MultiLabelClassifier(nn.Module):
@@ -11,6 +13,7 @@ class MultiLabelClassifier(nn.Module):
         relu (nn.ReLU): ReLU 激活函数。
         fc2 (nn.Linear): 第二层全连接层，输出为 logits。
     """
+
     def __init__(self, input_size, hidden_size, output_size):
         """
         初始化模型。
@@ -41,24 +44,24 @@ class MultiLabelClassifier(nn.Module):
         return x
 
 
-# 加载模型函数
-def load_model(model_path, input_size, hidden_size, num_classes):
-    """
-    从指定路径加载训练好的模型。
+# 加载完整预测模型
+model_path = 'whole_model.pth'
+model = torch.load(model_path)
 
-    Args:
-        model_path (str): 模型文件路径。
-        input_size (int): 输入特征的维度。
-        hidden_size (int): 隐藏层的节点数量。
-        num_classes (int): 输出标签的数量。
+# 加载归一化参数
+normalization_params_path = "normalization_params.pkl"  # 模型参数路径
 
-    Returns:
-        model (MultiLabelClassifier): 加载好的模型。
-    """
-    model = MultiLabelClassifier(input_size, hidden_size, num_classes)  # 初始化模型
-    model.load_state_dict(torch.load(model_path))  # 加载模型参数
-    model.eval()  # 切换模型为评估模式
-    return model
+
+# 加载归一化参数：均值和标准差，用于归一化输入特征
+def load_normalization_params(filepath=normalization_params_path):
+    with open(filepath, 'rb') as f:
+        mean, std = pickle.load(f)  # 从 pickle 文件中读取均值和标准差
+    return mean, std
+
+
+# 归一化函数：根据均值和标准差对特征进行标准化处理
+def normalize(features, mean, std):
+    return [(feature - m) / s for feature, m, s in zip(features, mean, std)]
 
 
 # 预测函数
@@ -84,3 +87,22 @@ def predict(model, features, threshold=0.6):
         if 1.0 not in predictions:
             predictions[0][probabilities.argmax()] = 2
     return probabilities, predictions
+
+
+features = [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0.500, 0.700, 21.580, 65.000, 65.400, 155.000, 30.000, 0.714, 0.023, 0.006,
+            0.994, 0.194]
+mean, std = load_normalization_params()
+normalized_features = normalize(features, mean, std)
+features_tensor = torch.tensor(normalized_features, dtype=torch.float32).unsqueeze(0)
+probabilities, predictions = predict(model, features_tensor)
+
+# 预测概率：是算法输出的原始概率结果
+# 预测结果：四个数字表示4种工艺策略的适用性: 1->推荐使用；2->可能适用；3->不推荐使用
+# 预测结果的四个数字分别表示“动态VP切换模式”、“动态保压压力模式”、“动态VP+保压模式”、“标准模式”的预测适用性，注意标签的顺序！
+print(f"概率分布：{probabilities}, 预测结果：{predictions}")
+
+strategy = ["动态VP切换模式", "动态保压压力模式", "动态VP+保压模式", "标准模式"]
+label = ['不适用', '适用', '可能适用']
+
+for i in range(4):
+    print(f"{strategy[i]}:{label[int(predictions[0][i])]}")
